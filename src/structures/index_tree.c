@@ -20,7 +20,6 @@ void idxt_Create(uint32_t page_size, uint32_t key_size)
     tree.page_counter = 0;
     tree.page_size = page_size;
     tree.key_size = key_size;
-    // B+-tree algorithm places constraints on the root. It needs atleast two child pages.
     tree.root = CreateEmptyPage(/* is_leaf */ true, /* no parent */ NULL);
 }
 
@@ -126,8 +125,7 @@ IndexPage_t *CreateEmptyPage(bool is_leaf, IndexPage_t *parent)
     }
     // We need to calculate the number of entries in the page based on
     // the size of the key, the size of the data, and the page size.
-    // page->max_entries = tree.page_size / (tree.key_size + page->data_size);
-    page->max_entries = 4;
+    page->max_entries = tree.page_size / (tree.key_size + page->data_size);
     // Finally, allocate the entries and set utilized entries to 0.
     page->entries = calloc(page->max_entries, sizeof(IndexPageEntry_t));
     page->num_entries = 0;
@@ -161,19 +159,9 @@ RecordID_t *ProcessLeafPage(IndexPage_t *current, void *key)
     // The entries are sorted in ascending order,
     // so we use binary search.
 
-    // First we set the boundaries and check them.
+    // First we set the boundaries.
     uint32_t max = current->num_entries;
-    /*if (current->entries[max].key == key)
-    {
-        // We found the key, return the RecordID.
-        return (RecordID_t *)current->entries[max].data;
-    }*/
     uint32_t min = 0;
-    /*if (current->entries[min].key == key)
-    {
-        // We found it.
-        return (RecordID_t *)current->entries[min].data;
-    }*/
 
     while (max >= min)
     {
@@ -319,7 +307,7 @@ IndexPageEntry_t *BalanceAndInsertLeafPageEntry(IndexPage_t *page, void *key, ui
     // We use the existing page as the low page, so we keep the lower key-partition of the candidates
     // in the existing page and update it's entry in the parent.
     // We clear the current entries and copy the lower-part from candidates.
-    memset(page->entries, 0, sizeof(IndexPageEntry_t) * (page->num_entries - 1));
+    memset(page->entries, 0, sizeof(IndexPageEntry_t) * (page->num_entries));
     page->num_entries = lowpage_range_end + 1;
     memcpy(page->entries, candidates, sizeof(IndexPageEntry_t) * page->num_entries);
     // Then we get a reference to it's entry in the parent and update it with the new highest key.
